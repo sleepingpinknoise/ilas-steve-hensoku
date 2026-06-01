@@ -1,3 +1,5 @@
+#ガチでいっちゃんあたらしいやつ
+
 import tkinter as tk
 
 EMPTY = 0
