@@ -708,7 +708,7 @@ class OthelloApp:
                 x2 = x1 + size
                 y2 = y1 + size
                 value = board[r][c]
-                fill = "#0b8f3a" if value != HOLE else "#222222"
+                fill = "#0b8f3a" if value != HOLE else "#FFFEFE"
                 if blackout and (r, c) not in valid:
                     fill = "#111111"
                 self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill=fill)
