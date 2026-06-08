@@ -234,8 +234,8 @@ class OthelloApp:
         self.draw_preview_board()
 
     def remove_player(self):
-        if len(self.players) <= 2:
-            messagebox.showinfo("人数変更", "人数は最低2人です。")
+        if len(self.players) <= 1:
+            messagebox.showinfo("人数変更", "一人は残してください。")
             return
         self.players.pop()
         self.update_player_label()
@@ -246,6 +246,9 @@ class OthelloApp:
         for i, player in enumerate(self.players, start=1):
             counts.append(f"{PLAYER_COLORS[i][0]}:{player['kind']}")
         self.player_label.config(text=f"{len(self.players)}人対戦  " + " / ".join(counts))
+        if hasattr(self, "remove_btn"):
+            state = tk.DISABLED if len(self.players) <= 1 else tk.NORMAL  # <= 2 → <= 1
+            self.remove_btn.config(state=state)
 
     def reset_all_settings(self):
         self.reset_settings()
@@ -278,6 +281,8 @@ class OthelloApp:
         player_count = player_count or len(self.players)
         top = rows // 2 - 2
         left = cols // 2 - 2
+        if player_count < 2:
+            return {}
         pattern = {
             2: ["0000", "0210", "0120", "0000"],
             3: ["0200", "1310", "0232", "0010"],
@@ -324,6 +329,9 @@ class OthelloApp:
         return {key: var.get() for key, var in self.vars.items()}
 
     def start_game(self):
+        if len(self.players) < 2:
+            messagebox.showinfo("人数変更", "人数は最低2人です。")
+            return
         self.settings = self.collect_settings()
         self.board = self.create_initial_board()
         self.ages = [[None for _ in row] for row in self.board]
@@ -708,9 +716,12 @@ class OthelloApp:
                 x2 = x1 + size
                 y2 = y1 + size
                 value = board[r][c]
-                fill = "#0b8f3a" if value != HOLE else "#FFFEFE"
-                if blackout and (r, c) not in valid:
+                if value == HOLE:
+                    fill = "#FFFFFF"
+                elif blackout and (r, c) not in valid:
                     fill = "#111111"
+                else:
+                    fill = "#0b8f3a"
                 self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill=fill)
 
                 if value > 0 and not (blackout and (r, c) not in valid):
