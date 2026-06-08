@@ -525,7 +525,7 @@ class OthelloApp:
             self.ages[nr][nc] = age
             self.health[nr][nc] = hp
             occupied.add((nr, nc))
-
+        self.next_gravity = None
     def apply_mirror(self, side):
         rows = len(self.board)
         cols = len(self.board[0])
@@ -592,7 +592,7 @@ class OthelloApp:
 
     def prepare_predictions(self):
         if self.settings.get("gravity") and self.settings.get("gravity_notice"):
-            if self.next_gravity is None:
+            if self.next_gravity ==None:
                 self.next_gravity = random.choice(list(GRAVITY_DIRECTIONS))
         else:
             self.next_gravity = None
