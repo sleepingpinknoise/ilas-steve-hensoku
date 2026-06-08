@@ -542,6 +542,7 @@ class OthelloApp:
                 target_c = cols - 1 - c
                 for r in range(rows):
                     self.copy_cell(r, c, r, target_c)
+        self.next_mirror = None
 
     def copy_cell(self, sr, sc, tr, tc):
         self.board[tr][tc] = self.board[sr][sc]
@@ -598,7 +599,8 @@ class OthelloApp:
         else:
             self.next_gravity = None
         if self.settings.get("mirror") and self.settings.get("mirror_notice"):
-            self.next_mirror = random.choice(MIRROR_SIDES)
+            if self.next_mirror ==None:
+                self.next_mirror = random.choice(MIRROR_SIDES)
         else:
             self.next_mirror = None
         if self.settings.get("destroy") and self.settings.get("destroy_notice"):
