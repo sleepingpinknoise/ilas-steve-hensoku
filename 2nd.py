@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 
+SERVER_URL="wss://ilas-steve-hensoku.onrender.com/ws"
 
 EMPTY = 0
 BLACK = 1
