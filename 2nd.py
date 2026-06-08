@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import messagebox
 import json
 import threading
-import websocket  # 🌟 通信用にインポート
+import websocket  
 
 SERVER_URL = "wss://ilas-steve-hensoku.onrender.com/ws"
 
@@ -29,10 +29,8 @@ class OthelloApp:
         self.current_player = BLACK
         self.game_started = False
         self.game_over = False
-        
-        # 🌟 オンライン用の変数
         self.ws = None
-        self.my_color = EMPTY  # 自分が黒か白か（サーバーから教えてもらう）
+        self.my_color = EMPTY  
 
         self.title_label = tk.Label(
             root,
@@ -57,9 +55,9 @@ class OthelloApp:
 
         self.start_button = tk.Button(
             self.button_frame,
-            text="サーバーに接続",  # 🌟 表記を変更
+            text="サーバーに接続",  
             font=("Arial", 13),
-            command=self.connect_server,  # 🌟 最初にサーバーに繋ぐように変更
+            command=self.connect_server, 
         )
         self.start_button.pack(side=tk.LEFT, padx=5)
 
@@ -74,7 +72,6 @@ class OthelloApp:
         self.canvas.bind("<Button-1>", self.on_click)
         self.draw_start_screen()
 
-    # 🌟 サーバーに接続する処理を追加
     def connect_server(self):
         self.status.config(text="サーバーに接続中...")
         self.start_button.config(state=tk.DISABLED)
@@ -83,7 +80,6 @@ class OthelloApp:
             try:
                 self.ws = websocket.create_connection(SERVER_URL)
                 print("Renderサーバーに繋がったよ！")
-                # 相手からのデータを待ち受けるスレッドを開始
                 threading.Thread(target=self.listen_server, daemon=True).start()
             except Exception as e:
                 print("接続エラー:", e)
@@ -92,7 +88,7 @@ class OthelloApp:
 
         threading.Thread(target=run, daemon=True).start()
 
-    # 🌟 サーバーからのメッセージを監視する関数を追加
+   
     def listen_server(self):
         while True:
             try:
@@ -100,17 +96,15 @@ class OthelloApp:
                 data = json.loads(response)
                 print("サーバーからデータ受信:", data)
 
-                # 💡 パターンA：対戦準備完了（プレイヤーの色やゲーム開始の通知）
+             
                 if "action" in data and data["action"] == "start":
-                    # サーバー側の実装に合わせて調整（例: 1人目をBLACK、2人目をWHITEにするなど）
-                    # 今回は接続が確立したらゲームを開始させる
                     self.root.after(0, self.start_game)
                     
-                # 💡 パターンB：相手が石を置いたデータが届いた時
+                
                 elif "row" in data and "col" in data:
                     row = data["row"]
                     col = data["col"]
-                    # 届いた座標に石を置く処理を安全にメインスレッドで実行
+                    
                     self.root.after(0, lambda r=row, c=col: self.remote_place_piece(r, c))
 
             except Exception as e:
@@ -182,13 +176,13 @@ class OthelloApp:
                     return True
         return False
 
-    # 🌟 元のplace_pieceを「通信送信付き」にちょっとだけ改造
+
     def place_piece(self, row, col):
         flips = self.get_flips(row, col, self.current_player)
 
         if not flips:
             self.status.config(text="そこには置けません")
-            return False  # 置けなかったらFalseを返す
+            return False  
 
         self.board[row][col] = self.current_player
 
@@ -212,7 +206,6 @@ class OthelloApp:
         self.draw_board()
         return True  # 正常に置けたらTrueを返す
 
-    # 🌟 相手（リモート）から届いた座標を処理する専用関数を追加
     def remote_place_piece(self, row, col):
         self.place_piece(row, col)
 
@@ -225,20 +218,15 @@ class OthelloApp:
             messagebox.showinfo("ゲーム終了", "ゲームは終了しました。リセットで新しく始められます。")
             return
 
-        # 🌟 自分の手番じゃない時はクリックできないようにガードをかける
-        # (サーバー側で手番の同期を取るまでの暫定処理。ルームに入った1人目を黒、2人目を白と想定して遊ぶ場合)
-        # if self.current_player != self.my_color:
-        #     self.status.config(text="相手の手番です、待ってね！")
-        #     return
-
+     
         row = event.y // CELL_SIZE
         col = event.x // CELL_SIZE
 
         if self.in_bounds(row, col):
-            # 石を置く処理を呼び出し、成功したらサーバーに送信！
+          
             success = self.place_piece(row, col)
             if success and self.ws:
-                # 🌟 「ここに置いたよ」と座標をRenderに送る
+             
                 data = {"row": row, "col": col}
                 try:
                     self.ws.send(json.dumps(data))
