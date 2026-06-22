@@ -366,6 +366,18 @@ class OthelloApp:
         if len(self.players) < 2:
             messagebox.showinfo("人数変更", "人数は最低2人です。")
             return
+        if self.settings.get("gravity") and self.settings.get("gravity_notice"):
+            self.next_gravity = random.choice(list(GRAVITY_DIRECTIONS))
+        else:
+            self.next_gravity = None
+        if self.settings.get("mirror") and self.settings.get("mirror_notice"):
+            self.next_mirror = random.choice(MIRROR_SIDES)
+        else:
+            self.next_mirror = None
+        if self.settings.get("destroy") and self.settings.get("destroy_notice"):
+            self.next_destroy_targets = self.random_piece_targets(self.settings["destroy_count"])
+        else:
+            self.next_destroy_targets = []
         self.settings = self.collect_settings()
         self.board = self.create_initial_board()
         self.cell_scores = self.generate_random_scores(len(self.board), len(self.board[0]))
@@ -382,18 +394,7 @@ class OthelloApp:
         self.show_game_controls()
         self.draw_board()
         self.schedule_cpu_if_needed()
-        if self.settings.get("gravity") and self.settings.get("gravity_notice"):
-            self.next_gravity = random.choice(list(GRAVITY_DIRECTIONS))
-        else:
-            self.next_gravity = None
-        if self.settings.get("mirror") and self.settings.get("mirror_notice"):
-            self.next_mirror = random.choice(MIRROR_SIDES)
-        else:
-            self.next_mirror = None
-        if self.settings.get("destroy") and self.settings.get("destroy_notice"):
-            self.next_destroy_targets = self.random_piece_targets(self.settings["destroy_count"])
-        else:
-            self.next_destroy_targets = []
+
 
 
     def show_game_controls(self):
@@ -652,6 +653,13 @@ class OthelloApp:
         self.board = [[EMPTY for _ in range(new_cols)] for _ in range(new_rows)]
         self.ages = [[None for _ in range(new_cols)] for _ in range(new_rows)]
         self.health = [[None for _ in range(new_cols)] for _ in range(new_rows)]
+        a = [[0 for _ in range(new_cols)] for _ in range(new_rows)]
+        for i in range(new_rows):
+            for j in range(new_cols):
+                if i == 0 or j == 0 or i == new_rows - 1 or j == new_cols - 1:
+                    a[i][j] = random.randint(1, self.settings.get("total_score_count", 99))
+                else:
+                    a[i][j] = self.cell_scores[i-1][j-1]
         row_shift = 1 if new_rows > old_rows else 0
         col_shift = 1 if new_cols > old_cols else 0
         for r in range(old_rows):
@@ -661,6 +669,7 @@ class OthelloApp:
                 self.board[nr][nc] = old_board[r][c]
                 self.ages[nr][nc] = old_ages[r][c]
                 self.health[nr][nc] = old_health[r][c]
+        self.cell_scores = a
         messagebox.showinfo("盤面拡大", "盤面が拡大しました。")
 
     def prepare_predictions(self):
