@@ -86,7 +86,7 @@ class OthelloApp:
         try:
             async with websockets.connect(SERVER_URL) as websocket:
                 self.websocket = websocket
-                self.status.config(text="【オンライン】 接続成功！設定を決めて『試合開始』を押してね。")
+                self.status.config(text="【オンライン】 接続成功やな～設定決めてさっさと『試合開始』せんかいな～")
                 
                 while True:
                     message = await websocket.recv()
