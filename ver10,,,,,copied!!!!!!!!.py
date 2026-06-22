@@ -31,9 +31,7 @@ GRAVITY_DIRECTIONS = {
 
 MIRROR_SIDES = ["上半分", "下半分", "左半分", "右半分"]
 
-# ⚠️ あなたのRenderのURLに書き換えてね！ (wss://から始めること)
-SERVER_URL = "wss://YOUR_RENDER_URL.onrender.com/ws"
-
+SERVER_URL = "wss://ilas-steve-hensoku.onrender.com/ws"
 
 class OthelloApp:
     def __init__(self, root):
