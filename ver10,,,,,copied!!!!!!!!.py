@@ -604,7 +604,7 @@ class OthelloApp:
             info_str += f"\n【ミッション】\n黒: あと{self.flip_mission_counters[0]}T内に {self.flip_mission_targets[0]}個反転\n白: あと{self.flip_mission_counters[1]}T内に {self.flip_mission_targets[1]}個反転\n"
         
         self.game_info.config(text=info_str)
-        self.status.config(text=f"【対局中】 {self.player_name(p)}の番（{role}）ってわけ" if not self.game_over else "ゲーム終了！")
+        self.status.config(text=f"【対局中】 {self.player_name(p)}の番（{role}）やな～はよしいや～" if not self.game_over else "ゲーム終了！")
 
 
 if __name__ == "__main__":
