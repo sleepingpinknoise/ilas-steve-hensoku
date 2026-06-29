@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"name": "ilas-steve-hensoku",
+			"path": "."
+		}
+	],
+	"settings": {
+		"python-envs.defaultEnvManager": "ms-python.python:system"
+	}
+}
