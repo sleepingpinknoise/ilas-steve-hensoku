@@ -2,7 +2,33 @@ import random
 import tkinter as tk
 from tkinter import messagebox
 import random
+import os
+import re
+from dotenv import load_dotenv
+import chatgpt
 
+load_dotenv(".env")
+chatbot = chatgpt.ChatBot(api_key = os.environ.get("OPENAI_API_KEY"))
+system_setting = """
+あなたは、多彩な特殊イベントが発生する「特殊オセロ」の少し強いAIプレイヤーです。
+与えられた盤面状況、有効な特殊ルール、そして自分が置くことのできる座標（合法手）のリストから、一手を選択してください。
+
+# 思考の指針
+1. 勝利条件の確認: 通常ルール（得点・石を最大化）か、「判定逆転」ルール（得点・石を最小化）かを必ず確認して思考を切り替えてください。
+2. マス目の価値の計算: 「総得点オセロ」が有効な場合、単に角（コーナー）を狙うだけでなく、各マスに配置されたスコアを重視してください。
+3. 特殊イベントの先読み: 「寿命」「体力」「重力」「鏡」「無差別破壊」などのイベントやその予告がある場合、自分の着手が次のターン以降にどう変化するか（消滅や移動など）を予測してください。
+4. ミッションの狙い目: 「反転個数指定」がある場合、ぴったりその数を反転させて連続手番（ボーナス）を狙える手を強力に評価してください。
+
+# 出力フォーマット
+出力は必ず以下の形式にしてください。
+
+[MOVE]row,col[/MOVE]
+
+※「row,col」の部分には、選択したマスの行番号と列番号（例: [MOVE]3,4[/MOVE]）を半角数字とカンマだけで入れてください。
+※理由や考察、解説などの日本語は絶対に、1文字も出力しないでください。
+※row,colは必ず（合法手）のリストに載っているものにしてください。
+"""
+chatbot.set_system_setting(system_setting)
 EMPTY = 0
 HOLE = -1
 
@@ -148,6 +174,7 @@ class OthelloApp:
         row = tk.Frame(frame)
         row.pack(fill=tk.X, pady=(5, 0))
         tk.Button(row, text="CPU追加", command=lambda: self.add_player("CPU")).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=2)
+        tk.Button(row, text="AI追加", command=lambda: self.add_player("AI")).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=2)
         tk.Button(row, text="人数追加", command=lambda: self.add_player("人間")).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=2)
         tk.Button(row, text="1人削除", command=self.remove_player).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=2)
         self.update_player_label()
@@ -394,6 +421,7 @@ class OthelloApp:
         self.show_game_controls()
         self.draw_board()
         self.schedule_cpu_if_needed()
+        self.schedule_ai_if_needed()
 
 
 
@@ -541,6 +569,7 @@ class OthelloApp:
         self.prepare_predictions()
         self.draw_board()
         self.schedule_cpu_if_needed()
+        self.schedule_ai_if_needed()
 
     def is_outer_cell(self, row, col):
         return row == 0 or col == 0 or row == len(self.board) - 1 or col == len(self.board[0]) - 1
@@ -690,16 +719,77 @@ class OthelloApp:
             self.next_destroy_targets = []
 
     def schedule_cpu_if_needed(self):
-        if self.game_started and not self.game_over and not self.is_human_turn():
-            self.root.after(500, self.cpu_move)
+        if self.game_started and not self.game_over:
+            current_kind = self.players[self.current_player_index]["kind"]
+            # 現在の手番が「CPU」のときだけ、2秒（2000ミリ秒）後に動かす
+            if current_kind == "CPU":
+                self.root.after(500, self.cpu_move)  # ← 早すぎる場合は 3000 に増やしてください
 
+    def schedule_ai_if_needed(self):
+        if self.game_started and not self.game_over:
+            current_kind = self.players[self.current_player_index]["kind"]
+            # 現在の手番が「AI」のときだけ、1秒（1000ミリ秒）後に動かす
+            if current_kind == "AI":
+                self.root.after(100, self.ai_move)
     def cpu_move(self):
-        if not self.game_started or self.game_over or self.is_human_turn():
+        if not self.game_started or self.game_over:
             return
+        # 現在のプレイヤーが「CPU」でなければ何もしない
+        if self.players[self.current_player_index]["kind"] != "CPU":
+            return
+            
         moves = self.valid_moves(self.current_player())
         if moves:
             self.place_piece(*random.choice(moves))
 
+    def ai_move(self):
+        if not self.game_started or self.game_over:
+            return
+        # 現在のプレイヤーが「AI」でなければ何もしない
+        if self.players[self.current_player_index]["kind"] != "AI":
+            return
+        player = self.current_player()
+        moves = self.valid_moves(player)
+        
+        if not moves:
+            return
+
+        # 1. 盤面を文字列化する
+        board_str = "\n".join([" ".join(map(str, row)) for row in self.board])
+        
+        # 2. 得点表を文字列化する（総得点ルール時）
+        score_str = ""
+        if self.settings.get("total_score"):
+            score_str = "各マスの得点表:\n" + "\n".join([" ".join(map(str, row)) for row in self.cell_scores])
+
+        # 3. LLMに渡すメッセージを作る
+        prompt = f"""現在の盤面:{board_str}{score_str}
+        あなたはプレイヤー {player} です。
+        あなたの合法手（置ける座標 row, col）は以下の通りです:
+        {moves}
+        現在の特殊ルール:
+        - 判定逆転: {self.settings.get("reverse_judgment")}
+        - 次の重力予告: {self.next_gravity}
+        - 破壊予告座標: {self.next_destroy_targets}
+        合法手の中から最も有利な手を1つ選び[MOVE]row,col[/MOVE]の形式で出力してください。"""
+        #message = chatbot.chat(prompt)
+        #print(message)
+        # --- AIにプロンプトを送って返答をもらう処理 ---
+        message = chatbot.chat(prompt)  # AIからの返答
+
+        # [MOVE] と [/MOVE] の間にある数字だけを抜き出す
+        match = re.search(r"\[MOVE\]\s*(\d+)\s*,\s*(\d+)\s*\[/MOVE\]", message)
+
+        if match:
+            # 見つかった場合は、安全に数字に変換して石を置く
+            row = int(match.group(1))
+            col = int(match.group(2))
+            self.place_piece(row, col)
+        else:
+            # 万が一AIがタグを出さなかった場合の安全装置（フリーズ防止）
+            print("AIがフォーマットを守りませんでした。内容:", message)
+            # 代わりにランダムで1手置く
+            self.place_piece(*random.choice(moves))
     def on_canvas_click(self, event):
         cell = self.cell_from_event(event)
         if cell is None:
